@@ -163,48 +163,30 @@ T_in_K_module.o\
 tridiag_lu_solver.o\
 turbulent_adv_pdf.o
 
+# KESSLER scheme now supports GPU execution 
 KESSLER_OBJS=\
 kessler.o \
 kessler_update.o
 
-# xdsl_ccpp's generated CCPP cap files (<suite>_cap.F90, cam_ccpp_cap.F90,
-# etc. -- one set per case, dynamically named after the suite/host, never a
-# fixed list like the *_OBJS above) need the same GPU flags as the scheme
-# object lists above: whenever OPENACC_GPU_OFFLOAD is TRUE, cam_autogen.py
-# passes xdsl_ccpp's own --directive acc, which makes it emit real
-# !$acc enter data/update self/update device directives directly INTO
-# these generated cap files (see suite_cap.py's SuiteOwned residency
-# handling and gpu_ccpp_cap_pass.py's HostMatched hoisting) -- not only
-# into the scheme sources. Without -acc on these files specifically, those
-# lines compile as inert Fortran comments, so no data ever actually
-# reaches the device even though the scheme's own present() check
-# (compiled with -acc via the object lists above) still runs for real --
-# confirmed as the cause of a "PRESENT clause was not found on device"
-# runtime failure that persisted after the cap-generation fix alone.
-# Every file living in this one generated-output directory is covered
-# (not just names matching "*_cap.F90"): OPENACC_GPU_FLAGS is empty for a
-# non-GPU case, so this is a no-op there, and applying it to a generated
-# file with no acc directives on a GPU case is harmless. Some RRTMGP
-# sources are also generated into this same directory and already have
-# their own rule via RRTMGP_OBJS above (identical flags in practice, but
-# filtered out here to avoid a duplicate-recipe warning and to leave that
-# list as the single source of truth for its own members).
 CCPP_GEN_DIR := $(EXEROOT)/atm/obj/ccpp
 CCPP_CAP_OBJS := $(filter-out $(PERFOBJS) $(REDUCED_OPT_OBJS) $(REDUCED_PRECISION_OBJS) $(SHR_RANDNUM_FORT_OBJS) $(PUMAS_OBJS) $(RRTMGP_OBJS) $(CLUBB_OBJS) $(KESSLER_OBJS),$(notdir $(patsubst %.F90,%.o,$(wildcard $(CCPP_GEN_DIR)/*.F90))))
 
+# 10/2025: Use -MllvmO0 as a temporary workaround for the CAM restart BFB issue
+# seen with nvhpc/25.9. Remove this once the NVHPC bug is fixed and the linked
+# issue documenting the workaround has been resolved.
 ifeq ($(DEBUG),FALSE)
   $(PERFOBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -Mfprelaxed=div $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -Mfprelaxed=div -MllvmO0 $<
   $(REDUCED_OPT_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O1 $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O1 -MllvmO0 $<
   $(REDUCED_PRECISION_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -fast $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -fast -MllvmO0 $<
   $(SHR_RANDNUM_FORT_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fast -Mfprelaxed=div,sqrt $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fast -Mfprelaxed=div,sqrt -MllvmO0 $<
 #  $(SHR_RANDNUM_C_OBJS): %.o: %.c
 #	  $(CC) -c $(INCLDIR) $(INCS) $(CFLAGS) -O3 -fast $<
   $(PUMAS_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fastsse -Mnofma -Mflushz -Mfprelaxed=sqrt $(OPENACC_GPU_FLAGS) $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fastsse -Mnofma -Mflushz -Mfprelaxed=sqrt -MllvmO0 $(OPENACC_GPU_FLAGS) $<
   $(RRTMGP_OBJS): %.o: %.F90
 	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(OPENACC_GPU_FLAGS) $<
   $(CLUBB_OBJS): %.o: %.F90
