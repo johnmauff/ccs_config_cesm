@@ -163,6 +163,35 @@ T_in_K_module.o\
 tridiag_lu_solver.o\
 turbulent_adv_pdf.o
 
+KESSLER_OBJS=\
+kessler.o \
+kessler_update.o
+
+# xdsl_ccpp's generated CCPP cap files (<suite>_cap.F90, cam_ccpp_cap.F90,
+# etc. -- one set per case, dynamically named after the suite/host, never a
+# fixed list like the *_OBJS above) need the same GPU flags as the scheme
+# object lists above: whenever OPENACC_GPU_OFFLOAD is TRUE, cam_autogen.py
+# passes xdsl_ccpp's own --directive acc, which makes it emit real
+# !$acc enter data/update self/update device directives directly INTO
+# these generated cap files (see suite_cap.py's SuiteOwned residency
+# handling and gpu_ccpp_cap_pass.py's HostMatched hoisting) -- not only
+# into the scheme sources. Without -acc on these files specifically, those
+# lines compile as inert Fortran comments, so no data ever actually
+# reaches the device even though the scheme's own present() check
+# (compiled with -acc via the object lists above) still runs for real --
+# confirmed as the cause of a "PRESENT clause was not found on device"
+# runtime failure that persisted after the cap-generation fix alone.
+# Every file living in this one generated-output directory is covered
+# (not just names matching "*_cap.F90"): OPENACC_GPU_FLAGS is empty for a
+# non-GPU case, so this is a no-op there, and applying it to a generated
+# file with no acc directives on a GPU case is harmless. Some RRTMGP
+# sources are also generated into this same directory and already have
+# their own rule via RRTMGP_OBJS above (identical flags in practice, but
+# filtered out here to avoid a duplicate-recipe warning and to leave that
+# list as the single source of truth for its own members).
+CCPP_GEN_DIR := $(EXEROOT)/atm/obj/ccpp
+CCPP_CAP_OBJS := $(filter-out $(PERFOBJS) $(REDUCED_OPT_OBJS) $(REDUCED_PRECISION_OBJS) $(SHR_RANDNUM_FORT_OBJS) $(PUMAS_OBJS) $(RRTMGP_OBJS) $(CLUBB_OBJS) $(KESSLER_OBJS),$(notdir $(patsubst %.F90,%.o,$(wildcard $(CCPP_GEN_DIR)/*.F90))))
+
 ifeq ($(DEBUG),FALSE)
   $(PERFOBJS): %.o: %.F90
 	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -Mfprelaxed=div $<
@@ -190,3 +219,33 @@ else
   $(REDUCED_ERRORCHKS_IN_DEBUG): %.o: %.F90
 	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -Mnobounds -Ktrap=none -Knoieee $<
 endif
+
+# KESSLER_OBJS and the generated CCPP cap files must get OPENACC_GPU_FLAGS
+# regardless of DEBUG -- unlike PERFOBJS/RRTMGP_OBJS/CLUBB_OBJS above, these
+# rules add no optimization flags on top of $(FFLAGS), just -acc/-gpu=...,
+# so applying them in DEBUG=TRUE is safe and is required for real OpenACC
+# device residency (needed e.g. by CPU-vs-GPU comparison tooling in DEBUG
+# builds). OPENACC_GPU_FLAGS is empty on a non-GPU case, so this is a no-op
+# there. $(CONTIGUOUS_FLAG) must also be carried over explicitly: before
+# these two rules existed, these files fell through to Tools/Makefile's
+# generic .F90.o: rule, which already applies it (needed by files like
+# coords_1d.F90 that reference the USE_CONTIGUOUS macro token) -- dropping
+# it here broke gw_cam4/gw_cam7/hb_vdiff/uw_vdiff ("Syntax error at or near
+# USE" in coords_1d.F90) once these explicit rules started shadowing the
+# generic one for CCPP_CAP_OBJS members.
+$(KESSLER_OBJS): %.o: %.F90
+	$(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(CONTIGUOUS_FLAG) $(OPENACC_GPU_FLAGS) $<
+ifneq ($(CCPP_CAP_OBJS),)
+  $(CCPP_CAP_OBJS): %.o: %.F90
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(CONTIGUOUS_FLAG) $(OPENACC_GPU_FLAGS) $<
+endif
+
+# NOTE: MPAS's own dycore .F files are NOT built through this Makefile at
+# all -- they go through a completely separate recursive sub-make
+# ($(MAKE) -C $(MPAS_LIBDIR) ..., the "libmpas:" rule in cime/CIME/Tools/
+# Makefile, which invokes MPAS's own Makefile.CESM/Makefile.in.CESM/
+# core_atmosphere Makefiles). A rule here for MPAS object names was tried
+# and confirmed dead: it never fires, because Make never routes MPAS's
+# compile through this file's rules in the first place. See
+# cime/CIME/Tools/Makefile's own "libmpas:" rule for the real fix location
+# (MPAS_DYCORE_GPU_OFFLOAD is threaded through FFLAGS there instead).
