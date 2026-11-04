@@ -129,6 +129,16 @@
       <env name="ESMF_RUNTIME_PROFILE">ON</env>
       <env name="ESMF_RUNTIME_PROFILE_OUTPUT">SUMMARY</env>
     </environment_variables>
+    <!-- The cuda/* module sets CRAY_ACCEL_TARGET, and with it the Cray cc/ftn
+         wrappers add OpenACC to every compile with no explicit -acc/-noacc
+         (CPU cases then fail to link: undefined __acc_compiled). Clear it on
+         CPU cases only: GPU cases need it, because the wrapper links the MPICH
+         GPU transport layer (libmpi_gtl_cuda) only when it is set; without it
+         MPICH aborts at startup ("GTL library is not linked"). GPU cases
+         instead rely on the explicit -noacc on every non-GPU rule. -->
+    <environment_variables compiler="nvhpc" gpu_type="none">
+      <env name="CRAY_ACCEL_TARGET"></env>
+    </environment_variables>
     <environment_variables gpu_type="!none">
       <env name="NCAR_LIBS_CUDA">-lcuda -lcudart</env>
       <env name="MPICH_GPU_IPC_ENABLED">0</env>

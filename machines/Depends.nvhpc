@@ -41,7 +41,7 @@ dSFMT.o \
 dSFMT_utils.o \
 kissvec.o
 
-# Apply GPU flags to the following code
+# GPU-enabled physics (OpenACC): these lists feed GPU_OBJS below
 PUMAS_OBJS=\
 micro_mg1_0.o \
 micro_pumas_v1.o \
@@ -163,34 +163,57 @@ T_in_K_module.o\
 tridiag_lu_solver.o\
 turbulent_adv_pdf.o
 
-# KESSLER scheme now supports GPU execution 
-KESSLER_OBJS=\
+# CCPP schemes with OpenACC kernels: Kessler and the utility schemes it uses
+# (gpu-fphystest-kessler).
+GPU_SCHEME_OBJS=\
 kessler.o \
-kessler_update.o
+kessler_update.o \
+state_converters.o \
+qneg.o \
+geopotential_temp.o
 
-CCPP_GEN_DIR := $(EXEROOT)/atm/obj/ccpp
-CCPP_CAP_OBJS := $(filter-out $(PERFOBJS) $(REDUCED_OPT_OBJS) $(REDUCED_PRECISION_OBJS) $(SHR_RANDNUM_FORT_OBJS) $(PUMAS_OBJS) $(RRTMGP_OBJS) $(CLUBB_OBJS) $(KESSLER_OBJS),$(notdir $(patsubst %.F90,%.o,$(wildcard $(CCPP_GEN_DIR)/*.F90))))
+# Generated CCPP caps (bld/atm/obj/ccpp) that contain OpenACC directives in a
+# GPU build (xdsl_ccpp --directive acc). Other caps have none and get -noacc.
+# Known exception: cam_ccpp_cap has no directives in a GPU RRTMGP build, but
+# is listed by name, so it gets -acc there too (it only dispatches).
+CCPP_GPU_CAP_OBJS=\
+cam_ccpp_cap.o \
+kessler_cap.o \
+kessler_test_cap.o
+
+# nvhpc flag policy: -acc ($(OPENACC_GPU_FLAGS)) only for the files listed in
+# GPU_OBJS, i.e. GPU-enabled physics that contains OpenACC directives;
+# everything else -noacc ($(ACC_OFF_FLAG)), here and in Tools/Makefile's
+# generic rules, so nothing depends on the build environment. -Knoieee and
+# -Mnofma come from FFLAGS (cmake_macros/nvhpc.cmake) for all files; GPU code
+# adds -gpu=...,nofma,math_uniform. CPU and GPU runs must agree bit for bit.
+# To enable a newly ported scheme, add its object to GPU_SCHEME_OBJS (or the
+# package's list) and any cap that gains directives to CCPP_GPU_CAP_OBJS.
+# The lists are explicit for now: MPAS's dycore has OpenACC directives that do
+# not work yet, so -acc cannot be derived from the sources. Known exception:
+# the Kessler builds compile CPU (directive-free) copies of the RRTMGP kernels
+# mo_gas_optics_rrtmgp_kernels and mo_optical_props_kernels under the same
+# names, so they get -acc there (never called).
+GPU_OBJS := $(PUMAS_OBJS) $(RRTMGP_OBJS) $(CLUBB_OBJS) $(GPU_SCHEME_OBJS) $(CCPP_GPU_CAP_OBJS)
 
 # 10/2025: Use -MllvmO0 as a temporary workaround for the CAM restart BFB issue
 # seen with nvhpc/25.9. Remove this once the NVHPC bug is fixed and the linked
-# issue documenting the workaround has been resolved.
+# issue documenting the workaround has been resolved. -Mnofma is repeated
+# after -fast/-fastsse so they cannot turn FMA back on.
 ifeq ($(DEBUG),FALSE)
   $(PERFOBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -Mfprelaxed=div -MllvmO0 $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -Mfprelaxed=div -MllvmO0 $(ACC_OFF_FLAG) $<
   $(REDUCED_OPT_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O1 -MllvmO0 $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O1 -MllvmO0 $(ACC_OFF_FLAG) $<
   $(REDUCED_PRECISION_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -fast -MllvmO0 $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -fast -Mnofma -MllvmO0 $(ACC_OFF_FLAG) $<
   $(SHR_RANDNUM_FORT_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fast -Mfprelaxed=div,sqrt -MllvmO0 $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fast -Mnofma -Mfprelaxed=div,sqrt -MllvmO0 $(ACC_OFF_FLAG) $<
 #  $(SHR_RANDNUM_C_OBJS): %.o: %.c
 #	  $(CC) -c $(INCLDIR) $(INCS) $(CFLAGS) -O3 -fast $<
   $(PUMAS_OBJS): %.o: %.F90
 	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -O3 -fastsse -Mnofma -Mflushz -Mfprelaxed=sqrt -MllvmO0 $(OPENACC_GPU_FLAGS) $<
-  $(RRTMGP_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(OPENACC_GPU_FLAGS) $<
-  $(CLUBB_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(OPENACC_GPU_FLAGS) $<
+  GPU_PLAIN_OBJS := $(filter-out $(PUMAS_OBJS),$(GPU_OBJS))
 
 ifeq ($(COMP_NAME),mpaso)
   # mpas ocean files need gpuflags
@@ -199,28 +222,17 @@ endif
 
 else
   $(REDUCED_ERRORCHKS_IN_DEBUG): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -Mnobounds -Ktrap=none -Knoieee $<
+	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) -Mnobounds -Ktrap=none -Knoieee $(ACC_OFF_FLAG) $<
+  GPU_PLAIN_OBJS := $(GPU_OBJS)
 endif
 
-# KESSLER_OBJS and the generated CCPP cap files must get OPENACC_GPU_FLAGS
-# regardless of DEBUG -- unlike PERFOBJS/RRTMGP_OBJS/CLUBB_OBJS above, these
-# rules add no optimization flags on top of $(FFLAGS), just -acc/-gpu=...,
-# so applying them in DEBUG=TRUE is safe and is required for real OpenACC
-# device residency (needed e.g. by CPU-vs-GPU comparison tooling in DEBUG
-# builds). OPENACC_GPU_FLAGS is empty on a non-GPU case, so this is a no-op
-# there. $(CONTIGUOUS_FLAG) must also be carried over explicitly: before
-# these two rules existed, these files fell through to Tools/Makefile's
-# generic .F90.o: rule, which already applies it (needed by files like
-# coords_1d.F90 that reference the USE_CONTIGUOUS macro token) -- dropping
-# it here broke gw_cam4/gw_cam7/hb_vdiff/uw_vdiff ("Syntax error at or near
-# USE" in coords_1d.F90) once these explicit rules started shadowing the
-# generic one for CCPP_CAP_OBJS members.
-$(KESSLER_OBJS): %.o: %.F90
+# GPU_OBJS get -acc in DEBUG builds too (needed for real device residency in
+# DEBUG CPU-vs-GPU comparisons); this rule adds no optimization flags on top
+# of $(FFLAGS). OPENACC_GPU_FLAGS is -noacc on a non-GPU case. $(CONTIGUOUS_FLAG)
+# is carried over from Tools/Makefile's generic .F90.o rule (coords_1d.F90
+# and others need the USE_CONTIGUOUS macro).
+$(GPU_PLAIN_OBJS): %.o: %.F90
 	$(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(CONTIGUOUS_FLAG) $(OPENACC_GPU_FLAGS) $<
-ifneq ($(CCPP_CAP_OBJS),)
-  $(CCPP_CAP_OBJS): %.o: %.F90
-	  $(FC) -c $(INCLDIR) $(INCS) $(FFLAGS) $(FREEFLAGS) $(CONTIGUOUS_FLAG) $(OPENACC_GPU_FLAGS) $<
-endif
 
 # NOTE: MPAS's own dycore .F files are NOT built through this Makefile at
 # all -- they go through a completely separate recursive sub-make
