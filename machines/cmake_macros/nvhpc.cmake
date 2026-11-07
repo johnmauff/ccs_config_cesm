@@ -12,7 +12,10 @@ if (NOT DEBUG)
 else()
   string(APPEND CFLAGS " -O0 -Mnofma -g -Wall -Knoieee -traceback")
   string(APPEND CXXFLAGS " -O0 -Mnofma -g -Wall -Knoieee -traceback")
-  string(APPEND FFLAGS " -O0 -g -Ktrap=fp -Mbounds -Knoieee")
+  # Trap invalid and overflow, not divide-by-zero: -Knoieee's fast pow
+  # (__fd_pow) raises a spurious divide-by-zero for 0.0**y (y > 0) in
+  # surface/coupler code, although the result (0) is correct.
+  string(APPEND FFLAGS " -O0 -g -Ktrap=inv,ovf -Mbounds -Knoieee")
 endif()
 
 # nvhpc flag policy (CPU and GPU, DEBUG and production): -Knoieee and no FMA
