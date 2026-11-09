@@ -165,6 +165,7 @@ turbulent_adv_pdf.o
 
 # CCPP schemes with OpenACC kernels: Kessler and the utility schemes it uses
 # (gpu-fphystest-kessler), then the FKESSLER energy/tendency schemes.
+# sima_state_diagnostics: conditional update self before history output.
 # physics_tendency_updaters: all five updaters. pumas_post_main: data regions
 # around its calls to PUMAS's GPU size-distribution kernels.
 GPU_SCHEME_OBJS=\
@@ -215,7 +216,8 @@ aerosol_optics_zero_stub.o \
 vertical_diffusion_sponge_layer.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
-atmos_phys_pbl_utils.o
+atmos_phys_pbl_utils.o \
+sima_state_diagnostics.o
 
 # Generated CCPP caps: every *_cap.F90 in $(EXEROOT)/atm/obj/ccpp (cam_ccpp_cap,
 # <suite>_cap, ccpp_<suite>_cap), found by wildcard -- the caps are generated
