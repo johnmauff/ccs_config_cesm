@@ -216,7 +216,9 @@ vertical_diffusion_sponge_layer.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
 atmos_phys_pbl_utils.o \
-tropopause_find.o
+tropopause_find.o \
+zm_conv_evap.o \
+compute_cloud_fraction.o
 
 # Generated CCPP caps: every *_cap.F90 in $(EXEROOT)/atm/obj/ccpp (cam_ccpp_cap,
 # <suite>_cap, ccpp_<suite>_cap), found by wildcard -- the caps are generated
