@@ -208,6 +208,14 @@ rrtmgp_constituents.o \
 rrtmgp_lw_calculate_heating_rate.o \
 rrtmgp_sw_calculate_heating_rate.o \
 rrtmgp_dry_static_energy_tendency.o \
+rrtmgp_lw_aerosols.o \
+rrtmgp_lw_calculate_fluxes.o \
+rrtmgp_sw_aerosols.o \
+rrtmgp_post.o \
+rrtmgp_sw_calculate_fluxes.o \
+rrtmgp_sw_solar_var.o \
+rrtmgp_lw_gas_optics_pre.o \
+rrtmgp_sw_gas_optics_pre.o \
 calculate_net_heating.o \
 zm_conv_convtran.o \
 convective_cloud_cover.o \
