@@ -232,7 +232,8 @@ compute_cloud_fraction.o \
 hack_convect_shallow.o \
 atmos_phys_interp_point.o \
 rrtmgp_cloud_optics_setup.o \
-rrtmgp_lw_cloud_optics.o
+rrtmgp_lw_cloud_optics.o \
+rrtmgp_sw_cloud_optics.o
 
 # Generated CCPP caps: every *_cap.F90 in $(EXEROOT)/atm/obj/ccpp (cam_ccpp_cap,
 # <suite>_cap, ccpp_<suite>_cap), found by wildcard -- the caps are generated
