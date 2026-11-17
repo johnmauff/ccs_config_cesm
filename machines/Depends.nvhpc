@@ -216,6 +216,7 @@ rrtmgp_sw_calculate_fluxes.o \
 rrtmgp_sw_solar_var.o \
 rrtmgp_lw_gas_optics_pre.o \
 rrtmgp_sw_gas_optics_pre.o \
+rrtmgp_inputs.o \
 calculate_net_heating.o \
 zm_conv_convtran.o \
 convective_cloud_cover.o \
