@@ -236,7 +236,9 @@ rrtmgp_lw_cloud_optics.o \
 rrtmgp_sw_cloud_optics.o \
 atmos_phys_kiss_rng.o \
 rrtmgp_lw_mcica_subcol_gen.o \
-rrtmgp_sw_mcica_subcol_gen.o
+rrtmgp_sw_mcica_subcol_gen.o \
+zm_conv_cloud_top.o \
+zm_convr.o
 
 # Generated CCPP caps: every *_cap.F90 in $(EXEROOT)/atm/obj/ccpp (cam_ccpp_cap,
 # <suite>_cap, ccpp_<suite>_cap), found by wildcard -- the caps are generated
