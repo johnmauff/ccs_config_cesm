@@ -223,6 +223,8 @@ convective_cloud_cover.o \
 rebin_seasalt.o \
 aerosol_optics_zero_stub.o \
 vertical_diffusion_sponge_layer.o \
+vertical_diffusion_interstitials.o \
+diffusion_solver.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
 atmos_phys_pbl_utils.o \
