@@ -226,6 +226,16 @@ vertical_diffusion_sponge_layer.o \
 vertical_diffusion_interstitials.o \
 diffusion_solver.o \
 atmos_phys_fin_vol_solver.o \
+rk_stratiform.o \
+rk_stratiform_pumas_optics_inputs.o \
+cloud_condensate_floor.o \
+cloud_optical_properties.o \
+cloud_particle_sedimentation.o \
+prognostic_cloud_water.o \
+gravity_wave_drag_interstitials.o \
+gravity_wave_drag_orographic.o \
+gw_common.o \
+gw_diffusion.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
 atmos_phys_pbl_utils.o \
