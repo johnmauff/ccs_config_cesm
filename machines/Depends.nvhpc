@@ -236,6 +236,12 @@ gravity_wave_drag_interstitials.o \
 gravity_wave_drag_orographic.o \
 gw_common.o \
 gw_diffusion.o \
+prescribe_radiative_gas_concentrations.o \
+prescribe_radiative_gas_vertical_profiles.o \
+atmos_phys_rad_utils.o \
+prescribed_ozone.o \
+prescribed_aerosols.o \
+prescribed_volcanic_aerosol.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
 atmos_phys_pbl_utils.o \
