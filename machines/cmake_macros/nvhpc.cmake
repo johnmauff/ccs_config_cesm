@@ -79,6 +79,12 @@ if (OPENACC_GPU_OFFLOAD)
   # even though --directive acc was passed at cap-generation time.
   string(APPEND CPPDEFS " -DUSE_GPU")
 endif()
+if ((OPENACC_GPU_OFFLOAD OR OPENMP_GPU_OFFLOAD) AND DEBUG)
+  # The caps' present()-only data regions around GPU scheme calls (no data
+  # movement; they turn residency bugs into "not present" aborts) are wrapped
+  # in #ifdef CCPP_GPU_PRESENT_CHECKS: compiled in DEBUG GPU builds only.
+  string(APPEND CPPDEFS " -DCCPP_GPU_PRESENT_CHECKS")
+endif()
 if (GPU_TYPE STREQUAL v100)
   if (OPENACC_GPU_OFFLOAD)
     set(OPENACC_GPU_FLAGS " -acc -gpu=cc70,lineinfo,nofma,math_uniform -Minfo=accel ")
