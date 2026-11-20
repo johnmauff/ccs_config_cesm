@@ -250,6 +250,7 @@ cloud_water_paths.o \
 convective_cloud_water.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
+holtslag_boville_diff_interstitials.o \
 atmos_phys_pbl_utils.o \
 tropopause_find.o \
 zm_conv_evap.o \
