@@ -217,6 +217,7 @@ rrtmgp_sw_solar_var.o \
 rrtmgp_lw_gas_optics_pre.o \
 rrtmgp_sw_gas_optics_pre.o \
 rrtmgp_inputs.o \
+rrtmgp_pre.o \
 calculate_net_heating.o \
 zm_conv_convtran.o \
 convective_cloud_cover.o \
@@ -242,6 +243,11 @@ atmos_phys_rad_utils.o \
 prescribed_ozone.o \
 prescribed_aerosols.o \
 prescribed_volcanic_aerosol.o \
+check_energy_chng.o \
+check_energy_hydrostatic_energy.o \
+check_energy_gmean.o \
+cloud_water_paths.o \
+convective_cloud_water.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
 atmos_phys_pbl_utils.o \
