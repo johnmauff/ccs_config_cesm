@@ -251,6 +251,10 @@ convective_cloud_water.o \
 set_surface_coupling_vars.o \
 holtslag_boville_diff.o \
 holtslag_boville_diff_interstitials.o \
+compute_subgrid_vertical_velocity.o \
+scale_subgrid_vertical_velocity.o \
+dust_default_radii.o \
+compute_total_precipitation_rate.o \
 atmos_phys_pbl_utils.o \
 tropopause_find.o \
 zm_conv_evap.o \
