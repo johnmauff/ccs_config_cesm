@@ -287,7 +287,11 @@ sima_state_diagnostics.o \
 cloud_water_paths_diagnostics.o \
 aerosol_optics_diagnostics.o \
 aerosol_mmr_host.o \
-cloud_cover_diagnostics.o
+cloud_cover_diagnostics.o \
+rrtmgp_sw_diagnostics.o \
+rrtmgp_lw_diagnostics.o \
+rrtmgp_diagnostics.o \
+atmos_phys_interp_utils.o
 
 # Generated CCPP caps: every *_cap.F90 in $(EXEROOT)/atm/obj/ccpp (cam_ccpp_cap,
 # <suite>_cap, ccpp_<suite>_cap), found by wildcard -- the caps are generated
