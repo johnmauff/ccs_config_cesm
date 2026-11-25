@@ -244,6 +244,7 @@ atmos_phys_rad_utils.o \
 prescribed_ozone.o \
 prescribed_aerosols.o \
 prescribed_volcanic_aerosol.o \
+prescribed_aerosol_deposition_flux.o \
 check_energy_chng.o \
 check_energy_hydrostatic_energy.o \
 check_energy_gmean.o \
